@@ -1,4 +1,6 @@
-opencv-python 
-numpy 
+opencv-python
+numpy
 matplotlib
-PyQt5 
+scikit-learn
+oracledb
+Pillow
