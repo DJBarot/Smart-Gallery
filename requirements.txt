@@ -1,6 +1,17 @@
+# Core image processing and numerical computing
 opencv-python
 numpy
+Pillow
 matplotlib
 scikit-learn
+
+# Data handling and progress display
+pandas
+tqdm
+
+# CLIP model and inference
+torch
+transformers
+
+# Oracle Database connectivity
 oracledb
-Pillow
