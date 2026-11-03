@@ -1,0 +1,7 @@
+category,query,precision_at_5,precision_at_10
+buildings,Modern buildings in a city,1.0,0.9
+forest,A dense green forest with tall trees,1.0,1.0
+glacier,A large glacier covered in ice,1.0,1.0
+mountain,A snow covered mountain under a clear blue sky,0.6,0.4
+sea,A peaceful sea with waves,1.0,1.0
+street,A busy city street with cars and buildings,0.8,0.9
