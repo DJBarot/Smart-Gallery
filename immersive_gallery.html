@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartImageGallery &mdash; 3D Interactive Showcases</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #F8F9FA;
+      --bg-surface: #FFFFFF;
+      --text-primary: #1E293B;
+      --text-secondary: #64748B;
+      --border: #E2E8F0;
+
+      /* Vibrant Accent Colors */
+      --color-dome: #059669;
+      --color-dome-grad: linear-gradient(135deg, #059669 0%, #10B981 100%);
+      --color-reel: #6366F1;
+      --color-reel-grad: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
+      --color-passage: #EA580C;
+      --color-passage-grad: linear-gradient(135deg, #EA580C 0%, #F59E0B 100%);
+
+      --radius: 600px;
+      --circ: calc(var(--radius) * 3.14159);
+      --segments-x: 35;
+      --segments-y: 35;
+      --rot-y: calc((360deg / var(--segments-x)) / 2);
+      --rot-x: calc((360deg / var(--segments-y)) / 2);
+      --item-width: calc(var(--circ) / var(--segments-x));
+      --item-height: calc(var(--circ) / var(--segments-y));
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-main);
+      color: var(--text-primary);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Ambient Subtle Dot Pattern */
+    body::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(rgba(100, 116, 139, 0.08) 1.5px, transparent 1.5px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Top Floating Glass Toolbar */
+    .top-toolbar {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 14px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      border-radius: 50px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.04);
+    }
+
+    .brand-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-right: 14px;
+      border-right: 1px solid var(--border);
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--text-primary);
+      letter-spacing: -0.01em;
+    }
+
+    .brand-pill .sparkle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--color-dome-grad);
+      color: #FFFFFF;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: 40px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .nav-tab:hover {
+      background: rgba(241, 245, 249, 0.9);
+      color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .nav-tab.active[data-target="view-dome"] {
+      background: var(--color-dome-grad);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+    }
+
+    .nav-tab.active[data-target="view-reel"] {
+      background: var(--color-reel-grad);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .nav-tab.active[data-target="view-passage"] {
+      background: var(--color-passage-grad);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(234, 88, 12, 0.4);
+    }
+
+    .stats-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #F1F5F9;
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .stats-pill span { color: var(--color-dome); }
+
+    .sound-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .sound-btn:hover {
+      background: #F8FAFC;
+      transform: scale(1.05);
+    }
+
+    /* View Containers */
+    .view-container {
+      position: absolute;
+      inset: 0;
+      display: none;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    .view-container.active {
+      display: block;
+    }
+
+    /* ========================================================
+       1. MOVABLE DOME GALLERY STYLES
+       ======================================================== */
+    .dome-wrapper {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      touch-action: none;
+      cursor: grab;
+      background: var(--bg-main);
+    }
+
+    .dome-wrapper:active {
+      cursor: grabbing;
+    }
+
+    .stage {
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      perspective: 1200px;
+      perspective-origin: 50% 50%;
+      contain: layout paint size;
+    }
+
+    .sphere-pivot {
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 0.05s ease-out;
+    }
+
+    .sphere {
+      transform-style: preserve-3d;
+      transform: translateZ(calc(var(--radius) * -1));
+      will-change: transform;
+    }
+
+    .item {
+      transform-style: preserve-3d;
+      width: calc(var(--item-width) * var(--item-size-x));
+      height: calc(var(--item-height) * var(--item-size-y));
+      position: absolute;
+      top: -999px;
+      bottom: -999px;
+      left: -999px;
+      right: -999px;
+      margin: auto;
+      transform-origin: 50% 50%;
+      backface-visibility: hidden;
+      transform: rotateY(calc(var(--rot-y) * (var(--offset-x) + ((var(--item-size-x) - 1) / 2))))
+                 rotateX(calc(var(--rot-x) * (var(--offset-y) - ((var(--item-size-y) - 1) / 2))))
+                 translateZ(var(--radius));
+    }
+
+    .item__image {
+      position: absolute;
+      inset: 8px;
+      border-radius: 16px;
+      background: #FFFFFF;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 2px solid #FFFFFF;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .item__image:hover {
+      transform: scale(1.1) translateZ(16px);
+      border-color: #10B981;
+      box-shadow: 0 12px 30px rgba(16, 185, 129, 0.35);
+      z-index: 50;
+    }
+
+    .item__image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      display: block;
+    }
+
+    /* Ambient Dome Vignette */
+    .dome-overlay {
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      z-index: 3;
+      pointer-events: none;
+      background-image: radial-gradient(rgba(248, 249, 250, 0) 55%, var(--bg-main) 100%);
+    }
+
+    /* Floating Navigation Controls HUD for Moving Dome */
+    .dome-nav-hud {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .hud-control-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      font-size: 14px;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hud-control-btn:hover {
+      background: var(--color-dome-grad);
+      color: #FFFFFF;
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    .hud-pill-btn {
+      padding: 8px 16px;
+      border-radius: 30px;
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .hud-pill-btn:hover {
+      background: var(--color-dome-grad);
+      color: #FFFFFF;
+      border-color: transparent;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+    }
+
+    /* ========================================================
+       2. REEL GALLERY STYLES (Fixed, Glitch-Free Gliding Reels)
+       ======================================================== */
+    .reel-view {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: var(--bg-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1400px;
+    }
+
+    .reel-container {
+      display: flex;
+      gap: 28px;
+      width: 130vw;
+      height: 130vh;
+      transform: rotate(-8deg) rotateX(8deg) scale(1.05);
+      transform-style: preserve-3d;
+      cursor: grab;
+    }
+    .reel-container:active { cursor: grabbing; }
+
+    .reel-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      will-change: transform;
+    }
+
+    .reel-card {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .reel-card:hover {
+      transform: scale(1.06) translateZ(40px);
+      border-color: #8B5CF6;
+      box-shadow: 0 20px 40px rgba(139, 92, 246, 0.35);
+      z-index: 30;
+    }
+
+    .reel-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .reel-card .card-badge {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(8px);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-primary);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ========================================================
+       3. PASSAGE GALLERY STYLES (3D Perspective Corridor)
+       ======================================================== */
+    .passage-view {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #FFFFFF 0%, var(--bg-main) 100%);
+      perspective: 900px;
+      display: grid;
+      place-items: center;
+      touch-action: none;
+    }
+
+    .passage-stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      transform-style: preserve-3d;
+    }
+
+    .passage-corridor {
+      position: relative;
+      width: 0;
+      height: 0;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    .passage-tile {
+      position: absolute;
+      width: 320px;
+      height: 230px;
+      left: -160px;
+      top: -115px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: #FFFFFF;
+      border: 3px solid #FFFFFF;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      cursor: pointer;
+      transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    }
+
+    .passage-tile:hover {
+      border-color: #F59E0B;
+      box-shadow: 0 20px 50px rgba(245, 158, 11, 0.4);
+      transform: scale(1.08) !important;
+      z-index: 200;
+    }
+
+    .passage-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .passage-hud {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 18px;
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 40px;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+      z-index: 100;
+    }
+
+    .hud-btn {
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: none;
+      background: #F1F5F9;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .hud-btn:hover {
+      background: var(--color-passage-grad);
+      color: #FFFFFF;
+      transform: translateY(-1px);
+    }
+
+    /* ========================================================
+       4. FULL-SCREEN LIGHTBOX MODAL
+       ======================================================== */
+    .lightbox-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .lightbox-modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .lightbox-card {
+      position: relative;
+      max-width: 85vw;
+      max-height: 85vh;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #FFFFFF;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+      border: 4px solid #FFFFFF;
+      transform: scale(0.92);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lightbox-modal.active .lightbox-card { transform: scale(1); }
+
+    .lightbox-card img {
+      max-width: 80vw;
+      max-height: 75vh;
+      object-fit: contain;
+      display: block;
+    }
+
+    .lightbox-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: #FFFFFF;
+      border-top: 1px solid var(--border);
+    }
+
+    .lightbox-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .lightbox-close-btn {
+      padding: 6px 14px;
+      background: #F1F5F9;
+      border: none;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: all 0.2s ease;
+    }
+    .lightbox-close-btn:hover {
+      background: #E11D48;
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Glass Toolbar -->
+  <header class="top-toolbar">
+    <div class="brand-pill">
+      <span class="sparkle">✦</span>
+      SmartImageGallery 3D
+    </div>
+
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-target="view-dome">
+        🌐 Dome Gallery
+      </button>
+      <button class="nav-tab" data-target="view-reel">
+        🎞️ Tilted Reels
+      </button>
+      <button class="nav-tab" data-target="view-passage">
+        🌀 Passage Tunnel
+      </button>
+    </nav>
+
+    <div class="stats-pill">
+      <span id="img-count-num">150</span> Images
+    </div>
+
+    <button class="sound-btn" id="sound-toggle" title="Toggle audio feedback">
+      🔊
+    </button>
+  </header>
+
+  <!-- 1. DOME GALLERY VIEW (Full 360° Movable, Zoomable, Pannable) -->
+  <section id="view-dome" class="view-container active">
+    <div class="dome-wrapper" id="dome-wrapper">
+      <div class="stage">
+        <div class="sphere-pivot" id="dome-pivot">
+          <div class="sphere" id="dome-sphere"></div>
+        </div>
+      </div>
+      <div class="dome-overlay"></div>
+
+      <!-- Movable HUD Controls -->
+      <div class="dome-nav-hud">
+        <button class="hud-control-btn" id="dome-left" title="Rotate Left">⬅️</button>
+        <button class="hud-control-btn" id="dome-right" title="Rotate Right">➡️</button>
+        <button class="hud-control-btn" id="dome-up" title="Tilt Up">⬆️</button>
+        <button class="hud-control-btn" id="dome-down" title="Tilt Down">⬇️</button>
+        <button class="hud-control-btn" id="dome-zoomin" title="Zoom In">🔍+</button>
+        <button class="hud-control-btn" id="dome-zoomout" title="Zoom Out">🔍−</button>
+        <button class="hud-pill-btn" id="dome-autospin">🔄 Auto-Spin</button>
+        <button class="hud-pill-btn" id="dome-reset">🎯 Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. REEL GALLERY VIEW -->
+  <section id="view-reel" class="view-container">
+    <div class="reel-view" id="reel-view">
+      <div class="reel-container" id="reel-container">
+        <div class="reel-col" id="reel-col-0"></div>
+        <div class="reel-col" id="reel-col-1"></div>
+        <div class="reel-col" id="reel-col-2"></div>
+        <div class="reel-col" id="reel-col-3"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. PASSAGE GALLERY VIEW -->
+  <section id="view-passage" class="view-container">
+    <div class="passage-view" id="passage-view">
+      <div class="passage-stage">
+        <div class="passage-corridor" id="passage-corridor"></div>
+      </div>
+
+      <div class="passage-hud">
+        <button class="hud-btn" id="hud-prev">⏪ Fly In</button>
+        <button class="hud-btn" id="hud-toggle">⏸️ Auto Glide</button>
+        <button class="hud-btn" id="hud-next">⏩ Fly Deep</button>
+        <button class="hud-btn" id="hud-reset">🔄 Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. LIGHTBOX MODAL -->
+  <div class="lightbox-modal" id="lightbox">
+    <div class="lightbox-card">
+      <img id="lightbox-img" src="" alt="Enlarged Image">
+      <div class="lightbox-footer">
+        <div class="lightbox-title" id="lightbox-title">Image Preview</div>
+        <button class="lightbox-close-btn" id="lightbox-close">Close (ESC)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Injected Gallery Images Data -->
+  <script>
+    window.GALLERY_IMAGES = ["images/beach.jpg", "images/buildings_0001.jpg", "images/buildings_0002.jpg", "images/buildings_0003.jpg", "images/buildings_0004.jpg", "images/buildings_0005.jpg", "images/buildings_0006.jpg", "images/buildings_0007.jpg", "images/buildings_0008.jpg", "images/buildings_0009.jpg", "images/buildings_0010.jpg", "images/buildings_0011.jpg", "images/buildings_0012.jpg", "images/buildings_0013.jpg", "images/buildings_0014.jpg", "images/buildings_0015.jpg", "images/buildings_0016.jpg", "images/buildings_0017.jpg", "images/buildings_0018.jpg", "images/buildings_0019.jpg", "images/buildings_0020.jpg", "images/buildings_0021.jpg", "images/buildings_0022.jpg", "images/buildings_0023.jpg", "images/buildings_0024.jpg", "images/buildings_0025.jpg", "images/buildings_0026.jpg", "images/buildings_0027.jpg", "images/buildings_0028.jpg", "images/buildings_0029.jpg", "images/buildings_0030.jpg", "images/buildings_0031.jpg", "images/buildings_0032.jpg", "images/buildings_0033.jpg", "images/buildings_0034.jpg", "images/buildings_0035.jpg", "images/buildings_0036.jpg", "images/buildings_0037.jpg", "images/buildings_0038.jpg", "images/buildings_0039.jpg", "images/buildings_0040.jpg", "images/buildings_0041.jpg", "images/buildings_0042.jpg", "images/buildings_0043.jpg", "images/buildings_0044.jpg", "images/buildings_0045.jpg", "images/buildings_0046.jpg", "images/buildings_0047.jpg", "images/buildings_0048.jpg", "images/buildings_0049.jpg", "images/buildings_0050.jpg", "images/buildings_0051.jpg", "images/buildings_0052.jpg", "images/buildings_0053.jpg", "images/buildings_0054.jpg", "images/buildings_0055.jpg", "images/buildings_0056.jpg", "images/buildings_0057.jpg", "images/buildings_0058.jpg", "images/buildings_0059.jpg", "images/buildings_0060.jpg", "images/buildings_0061.jpg", "images/buildings_0062.jpg", "images/buildings_0063.jpg", "images/buildings_0064.jpg", "images/buildings_0065.jpg", "images/buildings_0066.jpg", "images/buildings_0067.jpg", "images/buildings_0068.jpg", "images/buildings_0069.jpg", "images/buildings_0070.jpg", "images/buildings_0071.jpg", "images/buildings_0072.jpg", "images/buildings_0073.jpg", "images/buildings_0074.jpg", "images/buildings_0075.jpg", "images/buildings_0076.jpg", "images/buildings_0077.jpg", "images/buildings_0078.jpg", "images/buildings_0079.jpg", "images/buildings_0080.jpg", "images/buildings_0081.jpg", "images/buildings_0082.jpg", "images/buildings_0083.jpg", "images/buildings_0084.jpg", "images/buildings_0085.jpg", "images/buildings_0086.jpg", "images/buildings_0087.jpg", "images/buildings_0088.jpg", "images/buildings_0089.jpg", "images/buildings_0090.jpg", "images/buildings_0091.jpg", "images/buildings_0092.jpg", "images/buildings_0093.jpg", "images/buildings_0094.jpg", "images/buildings_0095.jpg", "images/buildings_0096.jpg", "images/buildings_0097.jpg", "images/buildings_0098.jpg", "images/buildings_0099.jpg", "images/buildings_0100.jpg", "images/buildings_0101.jpg", "images/buildings_0102.jpg", "images/buildings_0103.jpg", "images/buildings_0104.jpg", "images/buildings_0105.jpg", "images/buildings_0106.jpg", "images/buildings_0107.jpg", "images/buildings_0108.jpg", "images/buildings_0109.jpg", "images/buildings_0110.jpg", "images/buildings_0111.jpg", "images/buildings_0112.jpg", "images/buildings_0113.jpg", "images/buildings_0114.jpg", "images/buildings_0115.jpg", "images/buildings_0116.jpg", "images/buildings_0117.jpg", "images/buildings_0118.jpg", "images/buildings_0119.jpg", "images/buildings_0120.jpg", "images/buildings_0121.jpg", "images/buildings_0122.jpg", "images/buildings_0123.jpg", "images/buildings_0124.jpg", "images/buildings_0125.jpg", "images/buildings_0126.jpg", "images/buildings_0127.jpg", "images/buildings_0128.jpg", "images/buildings_0129.jpg", "images/buildings_0130.jpg", "images/buildings_0131.jpg", "images/buildings_0132.jpg", "images/buildings_0133.jpg", "images/buildings_0134.jpg", "images/buildings_0135.jpg", "images/buildings_0136.jpg", "images/buildings_0137.jpg", "images/buildings_0138.jpg", "images/buildings_0139.jpg", "images/buildings_0140.jpg", "images/buildings_0141.jpg", "images/buildings_0142.jpg", "images/buildings_0143.jpg", "images/buildings_0144.jpg", "images/buildings_0145.jpg", "images/buildings_0146.jpg", "images/buildings_0147.jpg", "images/buildings_0148.jpg", "images/buildings_0149.jpg"];
+  </script>
+
+  <script>
+    // --- Audio Feedback Engine ---
+    let soundEnabled = true;
+    let audioCtx = null;
+    function playSfx(type) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        const now = audioCtx.currentTime;
+        if (type === 'tab') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(660, now + 0.1);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } else if (type === 'click') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(780, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        }
+      } catch(e) {}
+    }
+
+    document.getElementById('sound-toggle').addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-toggle').textContent = soundEnabled ? '🔊' : '🔇';
+    });
+
+    // --- Lightbox Engine ---
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    function openLightbox(src, title) {
+      playSfx('click');
+      lightboxImg.src = src;
+      const cleanName = src.split('/').pop().replace(/\.[^/.]+$/, "");
+      lightboxTitle.textContent = title || cleanName;
+      lightbox.classList.add('active');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+    }
+
+    lightboxClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeLightbox();
+    });
+
+    // --- View Tab Switcher ---
+    const tabs = document.querySelectorAll('.nav-tab');
+    const views = document.querySelectorAll('.view-container');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        playSfx('tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        views.forEach(v => v.classList.remove('active'));
+        tab.classList.add('active');
+        const targetId = tab.getAttribute('data-target');
+        const activeView = document.getElementById(targetId);
+        if (activeView) activeView.classList.add('active');
+      });
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMode = urlParams.get('mode');
+    if (initialMode) {
+      const modeMap = { 'dome': 'view-dome', 'reel': 'view-reel', 'passage': 'view-passage' };
+      const tid = modeMap[initialMode];
+      if (tid) {
+        const btn = document.querySelector(`[data-target="${tid}"]`);
+        if (btn) btn.click();
+      }
+    }
+
+    /* ========================================================
+       1. MOVABLE DOME GALLERY IMPLEMENTATION
+       ======================================================== */
+    (function initDomeGallery() {
+      const sphere = document.getElementById('dome-sphere');
+      const pivot = document.getElementById('dome-pivot');
+      const wrapper = document.getElementById('dome-wrapper');
+      const pool = window.GALLERY_IMAGES;
+      if (!pool || pool.length === 0) return;
+
+      const segments = 35;
+      const xCols = Array.from({ length: segments }, (_, i) => -37 + i * 2);
+      const evenYs = [-4, -2, 0, 2, 4];
+      const oddYs = [-3, -1, 1, 3, 5];
+
+      const coords = xCols.flatMap((x, c) => {
+        const ys = c % 2 === 0 ? evenYs : oddYs;
+        return ys.map(y => ({ x, y, sizeX: 2, sizeY: 2 }));
+      });
+
+      coords.forEach((c, i) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'item';
+        itemEl.style.setProperty('--offset-x', c.x);
+        itemEl.style.setProperty('--offset-y', c.y);
+        itemEl.style.setProperty('--item-size-x', c.sizeX);
+        itemEl.style.setProperty('--item-size-y', c.sizeY);
+
+        const imgDiv = document.createElement('div');
+        imgDiv.className = 'item__image';
+
+        const imgSrc = pool[i % pool.length];
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.loading = 'lazy';
+        img.draggable = false;
+
+        imgDiv.appendChild(img);
+        itemEl.appendChild(imgDiv);
+        sphere.appendChild(itemEl);
+
+        imgDiv.addEventListener('click', (e) => {
+          if (!hasMoved) openLightbox(imgSrc);
+        });
+      });
+
+      // Movable Coordinates & Dynamics
+      let rotX = 0, rotY = 0;
+      let panX = 0, panY = 0;
+      let zoomZ = 0;
+      let autoSpin = false;
+
+      let isDragging = false, hasMoved = false;
+      let startX = 0, startY = 0;
+      let startRotX = 0, startRotY = 0;
+      let startPanX = 0, startPanY = 0;
+      let vx = 0, vy = 0, lastX = 0, lastY = 0;
+      let isPanning = false;
+      let inertiaRaf = null;
+
+      function renderTransform() {
+        // Apply 3D rotation + pan + zoom
+        pivot.style.transform = `translate3d(${panX.toFixed(1)}px, ${panY.toFixed(1)}px, ${zoomZ.toFixed(1)}px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+      }
+
+      function applyInertia() {
+        function step() {
+          vx *= 0.94;
+          vy *= 0.94;
+          if (Math.abs(vx) < 0.01 && Math.abs(vy) < 0.01) return;
+          rotX = Math.min(Math.max(rotX - vy * 0.35, -45), 45);
+          rotY = (rotY + vx * 0.35) % 360;
+          renderTransform();
+          inertiaRaf = requestAnimationFrame(step);
+        }
+        if (inertiaRaf) cancelAnimationFrame(inertiaRaf);
+        inertiaRaf = requestAnimationFrame(step);
+      }
+
+      // Drag to rotate / Shift-drag or right-drag to pan
+      wrapper.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('.dome-nav-hud')) return;
+        if (inertiaRaf) cancelAnimationFrame(inertiaRaf);
+
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        startRotX = rotX;
+        startRotY = rotY;
+        startPanX = panX;
+        startPanY = panY;
+        vx = 0;
+        vy = 0;
+        isPanning = e.shiftKey || e.button === 2;
+
+        try { wrapper.setPointerCapture(e.pointerId); } catch(err) {}
+      });
+
+      wrapper.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (Math.hypot(dx, dy) > 5) hasMoved = true;
+
+        vx = e.clientX - lastX;
+        vy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+
+        if (isPanning) {
+          panX = startPanX + dx;
+          panY = startPanY + dy;
+        } else {
+          // Generous 3D rotation
+          rotX = Math.min(Math.max(startRotX - dy / 8, -45), 45);
+          rotY = (startRotY + dx / 8) % 360;
+        }
+        renderTransform();
+      });
+
+      wrapper.addEventListener('pointerup', (e) => {
+        if (!isDragging) return;
+        isDragging = false;
+        try { wrapper.releasePointerCapture(e.pointerId); } catch(err) {}
+        if (!isPanning && Math.hypot(vx, vy) > 1.2) applyInertia();
+      });
+
+      wrapper.addEventListener('contextmenu', (e) => e.preventDefault());
+
+      // Mouse Wheel to Zoom in/out of the Dome
+      wrapper.addEventListener('wheel', (e) => {
+        zoomZ = Math.min(Math.max(zoomZ - e.deltaY * 0.8, -400), 450);
+        renderTransform();
+      }, { passive: true });
+
+      // HUD Button Controls
+      document.getElementById('dome-left').addEventListener('click', () => {
+        rotY = (rotY - 20) % 360;
+        renderTransform();
+      });
+      document.getElementById('dome-right').addEventListener('click', () => {
+        rotY = (rotY + 20) % 360;
+        renderTransform();
+      });
+      document.getElementById('dome-up').addEventListener('click', () => {
+        rotX = Math.min(rotX + 12, 45);
+        renderTransform();
+      });
+      document.getElementById('dome-down').addEventListener('click', () => {
+        rotX = Math.max(rotX - 12, -45);
+        renderTransform();
+      });
+      document.getElementById('dome-zoomin').addEventListener('click', () => {
+        zoomZ = Math.min(zoomZ + 120, 450);
+        renderTransform();
+      });
+      document.getElementById('dome-zoomout').addEventListener('click', () => {
+        zoomZ = Math.max(zoomZ - 120, -400);
+        renderTransform();
+      });
+
+      const autoSpinBtn = document.getElementById('dome-autospin');
+      autoSpinBtn.addEventListener('click', () => {
+        autoSpin = !autoSpin;
+        autoSpinBtn.textContent = autoSpin ? '⏸️ Stop Spin' : '🔄 Auto-Spin';
+      });
+
+      document.getElementById('dome-reset').addEventListener('click', () => {
+        rotX = 0;
+        rotY = 0;
+        panX = 0;
+        panY = 0;
+        zoomZ = 0;
+        renderTransform();
+      });
+
+      // Ambient Animation Loop
+      function autoSpinLoop() {
+        if (autoSpin && !isDragging) {
+          rotY = (rotY + 0.35) % 360;
+          renderTransform();
+        }
+        requestAnimationFrame(autoSpinLoop);
+      }
+      requestAnimationFrame(autoSpinLoop);
+      renderTransform();
+    })();
+
+    /* ========================================================
+       2. REEL GALLERY IMPLEMENTATION
+       ======================================================== */
+    (function initReelGallery() {
+      const container = document.getElementById('reel-container');
+      const pool = window.GALLERY_IMAGES;
+      if (!pool || pool.length === 0) return;
+
+      const numCols = 4;
+      const cols = [];
+      const colSpeeds = [0.65, -0.85, 0.72, -0.92];
+      const colOffsets = [0, 0, 0, 0];
+
+      for (let c = 0; c < numCols; c++) {
+        const colEl = document.getElementById(`reel-col-${c}`);
+        cols.push(colEl);
+
+        for (let i = 0; i < 24; i++) {
+          const imgSrc = pool[(c * 20 + i) % pool.length];
+          const card = document.createElement('div');
+          card.className = 'reel-card';
+
+          const img = document.createElement('img');
+          img.src = imgSrc;
+          img.loading = 'lazy';
+
+          const badge = document.createElement('div');
+          badge.className = 'card-badge';
+          badge.textContent = `Photo #${(c * 20 + i + 1)}`;
+
+          card.appendChild(img);
+          card.appendChild(badge);
+          colEl.appendChild(card);
+
+          card.addEventListener('click', () => {
+            if (!hasMoved) openLightbox(imgSrc);
+          });
+        }
+      }
+
+      let isPaused = false;
+      container.addEventListener('mouseenter', () => { isPaused = true; });
+      container.addEventListener('mouseleave', () => { isPaused = false; });
+
+      let isDragging = false, hasMoved = false;
+      let startY = 0, lastDragY = 0;
+
+      container.addEventListener('pointerdown', (e) => {
+        isDragging = true;
+        hasMoved = false;
+        startY = e.clientY;
+        lastDragY = e.clientY;
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        const dy = e.clientY - lastDragY;
+        if (Math.abs(e.clientY - startY) > 5) hasMoved = true;
+        lastDragY = e.clientY;
+
+        for (let c = 0; c < numCols; c++) {
+          colOffsets[c] += dy * (c % 2 === 0 ? 1 : -1);
+        }
+      });
+
+      window.addEventListener('pointerup', () => { isDragging = false; });
+
+      function animateReels() {
+        if (!isPaused && !isDragging) {
+          for (let c = 0; c < numCols; c++) {
+            colOffsets[c] += colSpeeds[c];
+          }
+        }
+
+        const maxScroll = 24 * 364;
+        for (let c = 0; c < numCols; c++) {
+          colOffsets[c] = colOffsets[c] % (maxScroll / 2);
+          cols[c].style.transform = `translate3d(0, ${colOffsets[c]}px, 0)`;
+        }
+        requestAnimationFrame(animateReels);
+      }
+      requestAnimationFrame(animateReels);
+    })();
+
+    /* ========================================================
+       3. PASSAGE GALLERY IMPLEMENTATION
+       ======================================================== */
+    (function initPassageGallery() {
+      const corridor = document.getElementById('passage-corridor');
+      const pool = window.GALLERY_IMAGES;
+      if (!corridor || !pool || pool.length === 0) return;
+
+      const totalItems = Math.min(pool.length, 64);
+      const stepZ = 280;
+      let cameraZ = 0;
+      let targetCameraZ = 0;
+      let autoGlide = true;
+
+      for (let i = 0; i < totalItems; i++) {
+        const tile = document.createElement('div');
+        tile.className = 'passage-tile';
+
+        const angle = i * 0.95;
+        const radiusX = 380;
+        const radiusY = 240;
+        const posX = Math.cos(angle) * radiusX;
+        const posY = Math.sin(angle) * radiusY;
+        const posZ = -i * stepZ;
+        const rotZ = (angle * 180 / Math.PI) * 0.3;
+
+        tile.style.transform = `translate3d(${posX.toFixed(1)}px, ${posY.toFixed(1)}px, ${posZ}px) rotateZ(${rotZ.toFixed(1)}deg)`;
+
+        const imgSrc = pool[i % pool.length];
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.loading = 'lazy';
+        tile.appendChild(img);
+
+        tile.addEventListener('click', () => {
+          openLightbox(imgSrc);
+        });
+
+        corridor.appendChild(tile);
+      }
+
+      function updatePassage() {
+        if (autoGlide) {
+          targetCameraZ += 0.85;
+          const maxZ = totalItems * stepZ - 500;
+          if (targetCameraZ > maxZ) targetCameraZ = 0;
+        }
+
+        cameraZ += (targetCameraZ - cameraZ) * 0.08;
+        corridor.style.transform = `translateZ(${cameraZ.toFixed(2)}px)`;
+        requestAnimationFrame(updatePassage);
+      }
+      requestAnimationFrame(updatePassage);
+
+      window.addEventListener('wheel', (e) => {
+        targetCameraZ += e.deltaY * 0.9;
+        const maxZ = totalItems * stepZ - 500;
+        targetCameraZ = Math.max(0, Math.min(targetCameraZ, maxZ));
+      }, { passive: true });
+
+      document.getElementById('hud-prev').addEventListener('click', () => {
+        targetCameraZ = Math.max(0, targetCameraZ - 800);
+      });
+      document.getElementById('hud-next').addEventListener('click', () => {
+        targetCameraZ = Math.min(totalItems * stepZ - 500, targetCameraZ + 800);
+      });
+      document.getElementById('hud-reset').addEventListener('click', () => {
+        targetCameraZ = 0;
+        cameraZ = 0;
+      });
+      const toggleBtn = document.getElementById('hud-toggle');
+      toggleBtn.addEventListener('click', () => {
+        autoGlide = !autoGlide;
+        toggleBtn.textContent = autoGlide ? '⏸️ Auto Glide' : '▶️ Resume Glide';
+      });
+    })();
+  </script>
+</body>
+</html>
