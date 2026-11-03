@@ -2,54 +2,35 @@ import os
 import json
 import numpy as np
 
-from feature_extraction import (
+
+from .feature_extraction import (
     preprocess_image,
-    extract_hsv_histogram,
-    extract_dominant_colors
+    create_feature_vector
 )
 
-from database import get_connection
+
+from .database import get_connection
 
 
 # ==================================================
 # FEATURE EXTRACTION FOR QUERY IMAGE
 # ==================================================
 
+
 def extract_query_features(image_path):
     """
-    Extract the same 268-dimensional features
-    used for images stored in Oracle.
+    Use the same feature-extraction pipeline
+    as the one used for indexed images.
     """
+    _, hsv_image = preprocess_image(image_path)
 
-    filtered_image, hsv_image = preprocess_image(image_path)
+    feature_vector, _, _ = create_feature_vector(hsv_image)
 
-    # 256 histogram features
-    histogram = extract_hsv_histogram(hsv_image)
+    histogram = feature_vector[:256]
+    dominant_colors = feature_vector[256:]
 
-    # 3 dominant colors
-    dominant_colors, percentages = extract_dominant_colors(
-        hsv_image,
-        k=3
-    )
+    return histogram, dominant_colors
 
-    # Normalize dominant colors
-    dominant_features = []
-
-    for i in range(3):
-
-        h = float(dominant_colors[i][0]) / 180.0
-        s = float(dominant_colors[i][1]) / 255.0
-        v = float(dominant_colors[i][2]) / 255.0
-        percentage = float(percentages[i])
-
-        dominant_features.extend([
-            h,
-            s,
-            v,
-            percentage
-        ])
-
-    return histogram, np.array(dominant_features)
 
 
 # ==================================================

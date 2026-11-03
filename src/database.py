@@ -8,7 +8,7 @@ import oracledb
 # ============================================
 
 DB_USER = "SYSTEM"
-DB_PASSWORD = os.getenv("ORACLE_PASSWORD")
+DB_PASSWORD = os.getenv("ORACLE_PASSWORD") 
 if not DB_PASSWORD:
     raise RuntimeError("ORACLE_PASSWORD environment variable is not set.")
 DB_HOST = "djb"

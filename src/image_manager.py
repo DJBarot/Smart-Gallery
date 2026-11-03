@@ -2,13 +2,13 @@ import os
 import json
 import cv2
 
-from feature_extraction import (
+from src.feature_extraction import (
     preprocess_image,
     extract_hsv_histogram,
     extract_dominant_colors
 )
 
-from database import get_connection
+from src.database import get_connection
 
 
 def insert_image(image_path):
@@ -25,6 +25,58 @@ def insert_image(image_path):
         return
 
     filename = os.path.basename(image_path)
+
+    # -----------------------------------------
+    # CHECK WHETHER IMAGE IS ALREADY INDEXED
+    # -----------------------------------------
+    check_connection = None
+    check_cursor = None
+
+    try:
+        check_connection = get_connection()
+        check_cursor = check_connection.cursor()
+
+        check_cursor.execute(
+            """
+            SELECT image_id
+            FROM images
+            WHERE filename = :filename
+            """,
+            {"filename": filename}
+        )
+
+        existing_record = check_cursor.fetchone()
+
+        if existing_record is not None:
+
+            existing_image_id = existing_record[0]
+
+            check_cursor.execute(
+                """
+                SELECT feature_id
+                FROM image_features
+                WHERE image_id = :image_id
+                """,
+                {"image_id": existing_image_id}
+            )
+
+            existing_feature = check_cursor.fetchone()
+
+            if existing_feature is not None:
+                print("SKIPPED: Image already indexed:", filename)
+                return
+
+    except Exception as error:
+        print("Could not check existing image:", filename)
+        print(error)
+        return
+
+    finally:
+        if check_cursor is not None:
+            check_cursor.close()
+
+        if check_connection is not None:
+            check_connection.close()
 
     # -----------------------------------------
     # 2. Read ORIGINAL image
@@ -343,8 +395,9 @@ def insert_image(image_path):
         print("Database connection closed.")
 
 
+
 # ==================================================
-# TEST
+# INDEX ALL IMAGES IN THE IMAGES FOLDER
 # ==================================================
 
 if __name__ == "__main__":
@@ -360,22 +413,41 @@ if __name__ == "__main__":
         "images"
     )
 
-    image_files = [
-        "djb passport.jpg",
-        "Screenshot 2026-06-21 144345.jpg",
-        "straw-hat-luffy-one-3840x2160-22500.png"
-    ]
+    supported_extensions = (
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".bmp",
+        ".webp",
+        ".tif",
+        ".tiff"
+    )
 
-    for filename in image_files:
-
-        print()
-        print("===================================")
-        print("PROCESSING:", filename)
-        print("===================================")
-
-        image_path = os.path.join(
-            image_folder,
+    if not os.path.isdir(image_folder):
+        print("Images folder not found:", image_folder)
+    else:
+        image_files = sorted(
             filename
+            for filename in os.listdir(image_folder)
+            if os.path.isfile(os.path.join(image_folder, filename))
+            and filename.lower().endswith(supported_extensions)
         )
 
-        insert_image(image_path)
+        print("\n===================================")
+        print("       INDEXING IMAGE GALLERY")
+        print("===================================")
+        print("Images folder:", image_folder)
+        print("Images discovered:", len(image_files))
+
+        for filename in image_files:
+            print("\n===================================")
+            print("PROCESSING:", filename)
+            print("===================================")
+
+            image_path = os.path.join(image_folder, filename)
+            insert_image(image_path)
+
+        print("\n===================================")
+        print("Image indexing process finished.")
+        print("Images discovered:", len(image_files))
+        print("===================================")

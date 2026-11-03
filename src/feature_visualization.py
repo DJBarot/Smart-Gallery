@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-from feature_extraction import (
+from .feature_extraction import (
     preprocess_image,
     extract_hsv_histogram,
     extract_dominant_colors
