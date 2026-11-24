@@ -439,7 +439,27 @@ if __name__ == "__main__":
         print("Images folder:", image_folder)
         print("Images discovered:", len(image_files))
 
+        # Optimize: Pre-fetch already indexed filenames in one query to avoid thousands of individual DB connections
+        indexed_filenames = set()
+        try:
+            pre_conn = get_connection()
+            pre_cur = pre_conn.cursor()
+            pre_cur.execute("""
+                SELECT i.filename
+                FROM images i
+                JOIN image_features f ON i.image_id = f.image_id
+            """)
+            indexed_filenames = {row[0] for row in pre_cur.fetchall()}
+            pre_cur.close()
+            pre_conn.close()
+        except Exception as pre_err:
+            print("Notice: Could not pre-fetch indexed images, falling back to per-file checks:", pre_err)
+
         for filename in image_files:
+            if filename in indexed_filenames:
+                print("SKIPPED: Image already indexed:", filename)
+                continue
+
             print("\n===================================")
             print("PROCESSING:", filename)
             print("===================================")
