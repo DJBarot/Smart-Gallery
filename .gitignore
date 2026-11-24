@@ -1,171 +1,22 @@
-# Python bytecode and caches
-__pycache__/
-*.py[codz]
-*$py.class
-*.so
-.python-version
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-env.bak/
-venv.bak/
-
-# Build and packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-*.manifest
-*.spec
-
-# Logs, temporary files and test output
-*.log
-pip-log.txt
-pip-delete-this-directory.txt
-tempCodeRunnerFile.py
-tmp/
-temp/
-*.tmp
-*.bak
-*.swp
-*.swo
-*~
-
-# Testing and coverage
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache/
-nosetests.xml
-coverage.xml
-*.cover
-*.py.cover
-.hypothesis/
-.pytest_cache/
-.cover/
-.ruff_cache/
-
-# Type checking
-.mypy_cache/
-.dmypy.json
-dmypy.json
-.pyre/
-.pytype/
-.pyright/
-
-# Local configuration and secrets
+# Environment and Secrets (DO NOT COMMIT)
 .env
-.env.*
-!.env.example
-.envrc
-.pypirc
-.streamlit/secrets.toml
-local_settings.py
-secrets/
-credentials/
-*.pem
-*.key
+*.env
 
-# Jupyter / IPython
-.ipynb_checkpoints/
-profile_default/
-ipython_config.py
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.tmp
 
-# IDEs and editors
-.idea/
-.vscode/
-.spyderproject
-.spyproject
-.ropeproject
+# Virtual Environments
+venv/
+.venv/
+env/
 
-# OS files
-.DS_Store
+# OS-specific
 Thumbs.db
-desktop.ini
+Desktop.ini
+.DS_Store
 
-# Project-specific local datasets and generated artifacts
+# Temporary trash
 .gallery_trash/
-SmartGallery_Selected/
-SmartGallery_Evaluation/
-data/
-datasets/
-
-# Keep the images directory placeholder, but do not upload local image collections.
-images/*
-!images/.gitkeep
-
-# Generated CLIP embeddings and feature arrays
-features/clip/*.npy
-features/clip/*.npz
-features/clip/*.pt
-features/clip/*.pth
-features/clip/*.bin
-features/clip/*.safetensors
-
-# Model/download caches
-.cache/
-.cache/huggingface/
-.cache/torch/
-huggingface/
-transformers/
-
-# SQLite / local databases
-*.sqlite
-*.sqlite3
-*.db
-db.sqlite3
-db.sqlite3-journal
-
-# Distribution metadata
-.Python
-pip-wheel-metadata/
-share/python-wheels/
-
-# Documentation build output
-docs/_build/
-site/
-
-# PyBuilder / Celery / Redis / RabbitMQ
-.pybuilder/
-target/
-celerybeat-schedule
-celerybeat.pid
-*.rdb
-*.aof
-*.pid
-mnesia/
-rabbitmq/
-rabbitmq-data/
-activemq-data/
-
-# Miscellaneous framework state
-.abstra/
-.webassets-cache/
-.scrapy/
-.pdm-python
-.pdm-build/
-.pixi/
-.pdm/
-__pypackages__/
-marimo/_static/
-marimo/_lsp/
-__marimo__/

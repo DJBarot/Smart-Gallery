@@ -199,22 +199,40 @@ def get_image_embedding(file_path, model, processor):
 def build_search_results(scores, metadata, top_n):
     """Convert similarity scores into the GUI-compatible result format."""
 
-    top_n = min(top_n, len(scores))
+    # Get active image IDs from Oracle DB so deleted images never appear in search results
+    active_ids = None
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT image_id FROM images")
+        active_ids = {row[0] for row in cursor.fetchall()}
+        cursor.close()
+        connection.close()
+    except Exception:
+        pass
 
     # Get indices in descending similarity order.
-    ranked_indices = np.argsort(-scores)[:top_n]
+    ranked_indices = np.argsort(-scores)
 
     results = []
 
     for index in ranked_indices:
         item = metadata[int(index)]
+        img_id = int(item["image_id"])
+
+        # Exclude any image that is no longer in the database
+        if active_ids is not None and img_id not in active_ids:
+            continue
 
         results.append({
-            "image_id": int(item["image_id"]),
+            "image_id": img_id,
             "filename": item["filename"],
             "file_path": item["image_path"],
             "similarity_score": float(scores[index])
         })
+
+        if len(results) >= top_n:
+            break
 
     return results
 

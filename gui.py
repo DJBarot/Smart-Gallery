@@ -1,5 +1,3 @@
-
-
 import hashlib
 import shutil
 import os
@@ -600,14 +598,15 @@ class SmartImageGallery:
     def resolve_image_path(self, file_path, filename=None):
         """Resolve an image path from the database, including moved project folders."""
         candidates = []
+        if filename:
+            candidates.append(IMAGE_FOLDER / Path(str(filename)).name)
+            candidates.append(PROJECT_ROOT / ".gallery_trash" / Path(str(filename)).name)
         if file_path:
             stored = Path(str(file_path)).expanduser()
             candidates.append(stored)
             if not stored.is_absolute():
                 candidates.append(PROJECT_ROOT / stored)
                 candidates.append(IMAGE_FOLDER / stored)
-        if filename:
-            candidates.append(IMAGE_FOLDER / Path(str(filename)).name)
 
         for candidate in candidates:
             try:
@@ -983,6 +982,16 @@ class SmartImageGallery:
 
                 normalized.pop(state["index"])
                 self.refresh_gallery()
+                if self.active_nav == "gallery":
+                    self.render_gallery_page()
+
+                # Refresh in-memory text/image search cache
+                try:
+                    from src.text_search import refresh_embedding_cache
+                    refresh_embedding_cache()
+                except Exception:
+                    pass
+
                 if not normalized:
                     window.destroy()
                     self.show_gallery()
@@ -1742,7 +1751,7 @@ class SmartImageGallery:
     # IMPORT IMAGES (unchanged logic, new UI)
     # ═══════════════════════════════════════════════════
     def import_images_from_folder(self):
-        """Select a folder, import images safely, and optionally index them."""
+        """Import images safely from individual files or a selected folder, and optionally index them."""
         self.set_active_nav("import")
         if self.busy:
             messagebox.showinfo(
@@ -1751,53 +1760,37 @@ class SmartImageGallery:
             )
             return
 
-        source_folder = filedialog.askdirectory(
-            title="Select a folder containing images"
-        )
-
-        if not source_folder:
-            return
-
-        source = Path(source_folder).resolve()
-        destination = IMAGE_FOLDER.resolve()
-
         supported_extensions = {
             ".jpg", ".jpeg", ".png", ".bmp",
             ".webp", ".tif", ".tiff"
         }
+        destination = IMAGE_FOLDER.resolve()
 
-        # Prevent recursively importing the gallery into itself.
-        if source == destination:
-            messagebox.showinfo(
-                "Gallery folder selected",
-                "This is already the gallery folder."
-            )
-            return
+        def start_import(source_paths):
+            if not source_paths:
+                return
 
-        def import_worker():
-            destination.mkdir(parents=True, exist_ok=True)
+            def import_worker():
+                destination.mkdir(parents=True, exist_ok=True)
 
-            copied = 0
-            duplicates = 0
-            invalid = 0
-            errors = 0
+                copied = 0
+                duplicates = 0
+                invalid = 0
+                errors = 0
 
-            for root, dirs, files in os.walk(source, followlinks=False):
-                # Avoid hidden subfolders.
-                dirs[:] = [
-                    folder for folder in dirs
-                    if not folder.startswith(".")
-                ]
-
-                for filename in files:
-                    if Path(filename).suffix.lower() not in supported_extensions:
+                for source_path in source_paths:
+                    filename = source_path.name
+                    if source_path.suffix.lower() not in supported_extensions:
                         continue
-
-                    source_path = Path(root) / filename
 
                     try:
                         # Do not follow file symlinks.
                         if source_path.is_symlink() or not source_path.is_file():
+                            continue
+
+                        # Avoid copying file onto itself
+                        if source_path.resolve().parent == destination:
+                            duplicates += 1
                             continue
 
                         source_hash = self.calculate_file_hash(source_path)
@@ -1860,48 +1853,138 @@ class SmartImageGallery:
                     except (OSError, PermissionError):
                         errors += 1
 
-            return {
-                "copied": copied,
-                "duplicates": duplicates,
-                "invalid": invalid,
-                "errors": errors
-            }
+                return {
+                    "copied": copied,
+                    "duplicates": duplicates,
+                    "invalid": invalid,
+                    "errors": errors
+                }
 
-        def import_finished(summary):
-            self.set_status("Folder import finished.")
+            def import_finished(summary):
+                self.set_status("Import finished.")
 
-            report = (
-                f"Folder import complete.\n\n"
-                f"New images copied: {summary['copied']}\n"
-                f"Identical files skipped: {summary['duplicates']}\n"
-                f"Unreadable images skipped: {summary['invalid']}\n"
-                f"Files that could not be imported: {summary['errors']}"
-            )
-
-            if summary["copied"] > 0:
-                report += "\n\nWould you like to index the imported images now?"
-
-                should_index = messagebox.askyesno(
-                    "Import complete",
-                    report
+                report = (
+                    f"Import complete.\n\n"
+                    f"New images copied: {summary['copied']}\n"
+                    f"Identical files skipped: {summary['duplicates']}\n"
+                    f"Unreadable images skipped: {summary['invalid']}\n"
+                    f"Files that could not be imported: {summary['errors']}"
                 )
 
-                if should_index:
-                    self.index_images()
-                else:
-                    messagebox.showinfo(
-                        "Import complete",
-                        "Images were copied. Click Index images when ready."
-                    )
-                self.show_toast(f"✓ {summary['copied']} images imported", "success")
-            else:
-                messagebox.showinfo("Import complete", report)
+                if summary["copied"] > 0:
+                    report += "\n\nWould you like to index the imported images now?"
 
-        self.start_task(
-            "Scanning and importing images...",
-            import_worker,
-            import_finished
-        )
+                    should_index = messagebox.askyesno(
+                        "Import complete",
+                        report
+                    )
+
+                    if should_index:
+                        self.index_images()
+                    else:
+                        messagebox.showinfo(
+                            "Import complete",
+                            "Images were copied. Click Index images when ready."
+                        )
+                    self.show_toast(f"✓ {summary['copied']} images imported", "success")
+                else:
+                    messagebox.showinfo("Import complete", report)
+
+            self.start_task(
+                f"Importing images into gallery...",
+                import_worker,
+                import_finished
+            )
+
+        # Modal to choose between selecting files or an entire folder
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Import Images")
+        dialog.geometry("420x220")
+        dialog.resizable(False, False)
+        dialog.configure(bg=BG_CARD)
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        try:
+            x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - 210
+            y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - 110
+            dialog.geometry(f"+{max(0, x)}+{max(0, y)}")
+        except Exception:
+            pass
+
+        tk.Label(
+            dialog,
+            text="Import Images",
+            font=(FONT_FAMILY, 14, "bold"),
+            bg=BG_CARD,
+            fg=TEXT_PRIMARY,
+        ).pack(pady=(20, 4))
+
+        tk.Label(
+            dialog,
+            text="Choose how you would like to import images:",
+            font=(FONT_FAMILY, 10),
+            bg=BG_CARD,
+            fg=TEXT_SECONDARY,
+        ).pack(pady=(0, 18))
+
+        btn_frame = tk.Frame(dialog, bg=BG_CARD)
+        btn_frame.pack(fill="x", padx=36)
+
+        def on_choose_files():
+            dialog.destroy()
+            selected = filedialog.askopenfilenames(
+                title="Select Image Files to Import",
+                filetypes=[
+                    ("Image files", "*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.tif;*.tiff"),
+                    ("All files", "*.*")
+                ]
+            )
+            if selected:
+                start_import([Path(p) for p in selected])
+
+        def on_choose_folder():
+            dialog.destroy()
+            folder = filedialog.askdirectory(
+                title="Select Folder (Click 'Select Folder' when inside your folder)"
+            )
+            if folder:
+                source = Path(folder).resolve()
+                if source == destination:
+                    messagebox.showinfo("Gallery folder selected", "This is already the gallery folder.")
+                    return
+                all_files = []
+                for root, dirs, files in os.walk(source, followlinks=False):
+                    dirs[:] = [d for d in dirs if not d.startswith(".")]
+                    for fname in files:
+                        all_files.append(Path(root) / fname)
+                start_import(all_files)
+
+        tk.Button(
+            btn_frame,
+            text="🖼  Select Image Files",
+            bg=ACCENT,
+            fg=WHITE,
+            font=(FONT_FAMILY, 10, "bold"),
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=8,
+            command=on_choose_files,
+        ).pack(fill="x", pady=(0, 10))
+
+        tk.Button(
+            btn_frame,
+            text="📁  Select Entire Folder",
+            bg=BG_MAIN,
+            fg=TEXT_PRIMARY,
+            font=(FONT_FAMILY, 10),
+            relief="flat",
+            cursor="hand2",
+            padx=14,
+            pady=8,
+            command=on_choose_folder,
+        ).pack(fill="x")
 
     # ═══════════════════════════════════════════════════
     # INDEX IMAGES (Oracle + HSV + CLIP)
